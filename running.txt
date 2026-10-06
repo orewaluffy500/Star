@@ -1,0 +1,5 @@
+to run the program simply do:
+
+    EXECUTABLE -run FILENAME
+
+You can also add the `-Dast` flag to see the generated AST aswell as the `-Dtok` flag to see the tokenized tokens.

@@ -1,0 +1,12 @@
+body            : NEWLINE* expr NEWLINE+
+
+expr            : assign-expr
+
+assign-expr     : arith-expr (ARROW expr)*
+
+arith-expr      : term (PLUS|MINUS term)*
+
+term            : factor (MUL|DIV factor)*
+
+factor          : INT|STR
+                : (PLUS|MINUS|DOLLAR|QUES_MARK) factor
