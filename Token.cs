@@ -10,6 +10,7 @@ public enum TokenType
 
 public record Token(TokenType Type, SourcePos Pos, object? Value = null)
 {
+    public bool Keyword(string kw) => Type == TokenType.Keyword && Value is string s && s == kw;
     public override string ToString()
     {
         return Value is not null ? $"({Type}:{Value})" : $"({Type})";

@@ -1,8 +1,21 @@
 body            : NEWLINE* expr NEWLINE+
 
-expr            : assign-expr
+expr            : LBRACK body RBRACK
+                : keyword-expr (EQ expr)*
 
-assign-expr     : arith-expr (ARROW expr)*
+keyword-expr    : KW:wrn expr
+                : KW:wr expr
+                : KW:rd
+                : KW:rdn
+                : KW:hlt expr
+                : KW:stoi expr
+                : KW:itos expr
+                : logical-expr
+
+logical-expr    : comp-expr (KW:and|KW:or comp-expr)*
+
+comp-expr       : arith-expr (LT|GT|EE|LTE|GTE arith-expr)*
+                : KW:not comp-expr
 
 arith-expr      : term (PLUS|MINUS term)*
 

@@ -99,7 +99,7 @@ public class Lexer(string source, string fileName)
                     tokens.Add(new(TokenType.Mod, Pos));
                     Next();
                     break;
-                
+                  
                 case '(':
                     tokens.Add(new(TokenType.LParen, Pos));
                     Next();
@@ -130,8 +130,12 @@ public class Lexer(string source, string fileName)
                     Next();
                     break;
                 
-                case '\n':
+                case ';':
                     tokens.Add(new(TokenType.Newline, Pos));
+                    Next();
+                    break;
+                
+                case '\n':
                     Next();
                     break;
                 

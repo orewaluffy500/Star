@@ -11,16 +11,19 @@ public class Interpreter
     public Memory Memory = new();
 
 
-    public RTResult Expect<T>(StValue value) where T: StValue
+    public static T? Expect<T>(StValue value, SourcePos site, out BaseError? error) where T: StValue
     {
-        RTResult result = new();
-        if (value is T v) return result.Success(v);
+        if (value is T v){
+            error = null;
+            return v;
+        }
 
         string expected = StValue.LabelOf(typeof(T));
         string given = StValue.LabelOf(value.GetType());
 
         string message = $"expected value of type '{expected}', got '{given}' instead!";
-        return result.Failure(new StRuntimeError(message, value.Pos));
+        error = new StRuntimeError(message, site);
+        return null;
     }
 
     public RTResult Visit(ASTNode node)
@@ -34,6 +37,8 @@ public class Interpreter
             BodyNode bodyNode => VisitBody(bodyNode),
             UnaryOpNode unaryOpNode => VisitUnaryOp(unaryOpNode),
             BinOpNode binOpNode => VisitBinOp(binOpNode),
+            PrintNode printNode => VisitPrint(printNode),
+            ReadNode readNode => VisitRead(readNode),
             _ => result.Failure(new StUnexpectedNodeError($"unexpected ast node: '{node.GetType().Name}'!", node.Pos))
         };
     }
@@ -83,24 +88,32 @@ public class Interpreter
 
         else if (op.Type == TokenType.Dollar)
         {
-            StInt index = (StInt) result.Register(Expect<StInt>(rhs));
-            if (result.HasError()) return result;
+            var index = Expect<StInt>(rhs, rhs.Pos, out var e);
+            if (e is not null) return result.Failure(e);
 
-            return result.Success(new StRegister(index.Value, this).Repos(node.Pos));
+            return result.Success(new StRegister(index!.Value, this).Repos(node.Pos));
         }
         
         else if (op.Type == TokenType.QuesMark)
         {
-            StReference reference = (StReference) result.Register(Expect<StReference>(rhs));
-            if (result.HasError()) return result;
+            var reference = Expect<StReference>(rhs, rhs.Pos, out var e);
+            if (e is not null) return result.Failure(e);
 
-            var (value, error) = reference.Get();
+            var (value, error) = reference!.Get();
             if (error is not null) return result.Failure(error);
 
             return result.Success(value!.Repos(node.Pos));
         }
 
-        return result.Success(rhs);
+        else if (op.Keyword("not"))
+        {
+            var (value, error) = rhs.Notted();
+            if (error is not null) return result.Failure(error);
+
+            return result.Success(value!.Repos(node.Pos));
+        }
+
+        return result.Success(rhs.Repos(node.Pos));
     }
 
     public RTResult VisitBinOp(BinOpNode node)
@@ -122,23 +135,73 @@ public class Interpreter
             return result.Success(value!.Repos(node.Pos));
         }
 
-        if (op.Type == TokenType.Arrow)
-        {
-            StReference reference = (StReference) result.Register(Expect<StReference>(lhs));
-            if (result.HasError()) return result;
+        RTResult handleCompOp(Func<StValue, bool> factory){
+            return result.Success(StInt.FromBool(factory(rhs)).Repos(node.Pos));
+        }
 
-            var error = reference.Set(rhs);
+        if (op.Type == TokenType.Equals)
+        {
+            var reference = Expect<StReference>(lhs, lhs.Pos, out var e);
+            if (e is not null) return result.Failure(e);
+
+            if (e is not null) return result.Failure(e);
+
+            var error = reference!.Set(rhs!);
             if (error is not null) return result.Failure(error);
-            return result.Success(new StNull().Repos(node.Pos));
+            return result.Success(rhs!.Copy().Repos(node.Pos));
+        }
+
+        if (op.Type == TokenType.Keyword)
+        {
+            return (op.Value as string ?? "") switch
+            {
+                "and" => handleCompOp(lhs.AndBy),
+                "or" => handleCompOp(lhs.OrBy),
+                _ => result.Failure(new StIllegalOperError($"illegal operation: {StValue.LabelOf(lhs.GetType())} {op} {StValue.LabelOf(rhs.GetType())}", node.Pos))
+            };
         }
 
         return op.Type switch
         {
-            TokenType.Plus => handleOp(lhs.AddTo),
+            TokenType.Plus  => handleOp(lhs.AddTo),
             TokenType.Minus => handleOp(lhs.SubBy),
-            TokenType.Mul => handleOp(lhs.MulBy),
-            TokenType.Div => handleOp(lhs.DivBy),
+            TokenType.Mul   => handleOp(lhs.MulBy),
+            TokenType.Div   => handleOp(lhs.DivBy),
+            TokenType.LT    => handleCompOp(lhs.LessThan),
+            TokenType.GT    => handleCompOp(lhs.MoreThan),
+            TokenType.LTE   => handleCompOp(lhs.LessOrEqualTo),
+            TokenType.GTE   => handleCompOp(lhs.MoreOrEqualTo),
+            TokenType.EE    => handleCompOp(lhs.EqualTo),
             _ => result.Failure(new StIllegalOperError($"illegal operation: {StValue.LabelOf(lhs.GetType())} {op} {StValue.LabelOf(rhs.GetType())}", node.Pos))
         };
+    }
+
+    public RTResult VisitPrint(PrintNode node)
+    {
+        RTResult result = new();
+        var value = result.Register(Visit(node.Value));
+        if (result.HasError()) return result;
+
+        Console.Write(value);
+        if (node.Newline) Console.WriteLine();
+
+        return result.Success(value);
+    }
+
+    public RTResult VisitRead(ReadNode node)
+    {
+        RTResult result = new();
+        string value = Console.ReadLine() ?? "";
+
+        if (node.Newline)
+        {
+            return result.Success(
+                new StString(value).Repos(node.Pos)
+            );
+        }
+
+        return result.Success(
+            new StString(value.Split(' ')[0]).Repos(node.Pos)
+        );
     }
 }

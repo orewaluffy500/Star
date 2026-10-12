@@ -50,7 +50,7 @@ void runFile(string fileName)
     Parser parser = new(fileName, tokens);
     parser.Next();
 
-    var result = parser.Body(true);
+    var result = parser.PlainBody();
     if (result.HasError()){ Console.Error.WriteLine(result.Error?.Prettify()); return; }
     else if (args.Contains("-Dast")) Console.WriteLine(result.Node);
 
@@ -60,5 +60,4 @@ void runFile(string fileName)
     RTResult rtResult = interpreter.Visit(result.Node!);
 
     if (rtResult.HasError()) Console.Error.WriteLine(rtResult.Error?.Prettify());
-    else Console.WriteLine(rtResult.Value);
 }

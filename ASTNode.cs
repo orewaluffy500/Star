@@ -66,3 +66,24 @@ public class BinOpNode(Token operToken, ASTNode rhs, ASTNode lhs) : ASTNode
         return $"BIN({Lhs} {OperToken} {Rhs})";
     }
 }
+
+public class PrintNode(bool newline, ASTNode value) : ASTNode
+{
+    public ASTNode Value = value;
+    public bool Newline = newline;
+
+    public override string ToString()
+    {
+        return Newline ? $"WRN({Value})" : $"WR({Value})";
+    }
+}
+
+public class ReadNode(bool newline) : ASTNode
+{
+    public bool Newline = newline;
+
+    public override string ToString()
+    {
+        return Newline ? $"RDN()" : $"RD()";
+    }
+}
