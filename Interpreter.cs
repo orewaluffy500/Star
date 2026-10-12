@@ -39,6 +39,7 @@ public class Interpreter
             BinOpNode binOpNode => VisitBinOp(binOpNode),
             PrintNode printNode => VisitPrint(printNode),
             ReadNode readNode => VisitRead(readNode),
+            IfNode ifNode => VisitIf(ifNode),
             _ => result.Failure(new StUnexpectedNodeError($"unexpected ast node: '{node.GetType().Name}'!", node.Pos))
         };
     }
@@ -203,5 +204,34 @@ public class Interpreter
         return result.Success(
             new StString(value.Split(' ')[0]).Repos(node.Pos)
         );
+    }
+
+    public RTResult VisitIf(IfNode node)
+    {
+        RTResult result = new();
+        StValue final = new StNull().Repos(node.Pos);
+        bool succesfulCaseFound = false;
+
+        foreach (IfCase ifCase in node.Cases)
+        {
+            var output = result.Register(Visit(ifCase.Expr));
+            if (result.HasError()) return result;
+
+            if (!output.IsTrue()) continue;
+
+            final = result.Register(Visit(ifCase.Body));
+            if (result.HasError()) return result;
+
+            succesfulCaseFound = true;
+            break;
+        }
+
+        if (!succesfulCaseFound && node.ElseCase is not null)
+        {
+            final = result.Register(Visit(node.ElseCase));
+            if (result.HasError()) return result;
+        }
+
+        return result.Success(final);
     }
 }

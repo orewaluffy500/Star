@@ -135,6 +135,12 @@ public class StString(string value) : StValue
         return Value.Length > 0;
     }
 
+    public override bool EqualTo(StValue other)
+    {
+        if (other is not StString s) return false;
+        return Value == s.Value;
+    }
+
     public override string ToString()
     {
         return $"{Value}";

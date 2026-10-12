@@ -1,15 +1,14 @@
 body            : NEWLINE* expr NEWLINE+
 
+
 expr            : LBRACK body RBRACK
                 : keyword-expr (EQ expr)*
+                : KW:if expr expr (KW:elseif expr expr)* (KW:else expr)?
 
 keyword-expr    : KW:wrn expr
                 : KW:wr expr
                 : KW:rd
                 : KW:rdn
-                : KW:hlt expr
-                : KW:stoi expr
-                : KW:itos expr
                 : logical-expr
 
 logical-expr    : comp-expr (KW:and|KW:or comp-expr)*

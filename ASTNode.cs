@@ -87,3 +87,25 @@ public class ReadNode(bool newline) : ASTNode
         return Newline ? $"RDN()" : $"RD()";
     }
 }
+
+public class IfCase(ASTNode expr, ASTNode body) : ASTNode
+{
+    public ASTNode Expr = expr;
+    public ASTNode Body = body;
+
+    public override string ToString()
+    {
+        return $"(IF({Expr}) THEN {Body})";
+    }
+}
+
+public class IfNode(IfCase[] cases, ASTNode? elseCase) : ASTNode
+{
+    public IfCase[] Cases = cases;
+    public ASTNode? ElseCase = elseCase;
+
+    public override string ToString()
+    {
+        return $"({string.Join(' ', Cases)} ELSE {ElseCase})";
+    }
+}

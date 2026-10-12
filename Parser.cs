@@ -164,6 +164,47 @@ public class Parser(string fileName, Token[] tokens)
         return LogicalExpr();
     }
 
+    public ParseResult IfExpr()
+    {
+        ParseResult result = new();
+        Token token = Current;
+
+        Next();
+        List<IfCase> cases = [];
+        ASTNode? elseCase = null;
+
+        var condition = result.Register(Expr());
+        if (result.HasError()) return result;
+
+        var body = result.Register(Expr());
+        if (result.HasError()) return result;
+
+        cases.Add(new(condition!, body!));
+        
+        while (Current.Keyword("elseif"))
+        {
+            Next();
+            var elseifCondition = result.Register(Expr());
+            if (result.HasError()) return result;
+
+            var elseifBody = result.Register(Expr());
+            if (result.HasError()) return result;
+
+            cases.Add(new(elseifCondition!, elseifBody!));
+        }
+
+        if (Current.Keyword("else"))
+        {
+            Next();
+            elseCase = result.Register(Expr());
+            if (result.HasError()) return result;
+        }
+
+        return result.Success(
+            new IfNode([..cases], elseCase).Repos(token.Pos)
+        );
+    }
+
     public ParseResult Expr()
     {
         ParseResult result = new();
@@ -177,6 +218,12 @@ public class Parser(string fileName, Token[] tokens)
 
             return result.Success(node!.Repos(token.Pos));
         }
+
+        else if (token.Keyword("if"))
+        {
+            return IfExpr();
+        }
+
         return BinOp(KeywordExpr, [TokenType.Equals], Expr);
     }
 

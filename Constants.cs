@@ -7,6 +7,7 @@ class KeywordClass
         "wrn", "wr", "rdn", "rd",
         "stoi", "itos",
         "hlt",
-        "and", "or", "not"
+        "and", "or", "not",
+        "if", "else", "elseif",
     ];
 }
