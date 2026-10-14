@@ -40,6 +40,9 @@ public class Interpreter
             PrintNode printNode => VisitPrint(printNode),
             ReadNode readNode => VisitRead(readNode),
             IfNode ifNode => VisitIf(ifNode),
+            WhileLoopNode whileLoopNode => VisitWhileLoop(whileLoopNode),
+            NextNode nextNode => VisitNext(nextNode),
+            BreakNode breakNode => VisitBreak(breakNode),
             _ => result.Failure(new StUnexpectedNodeError($"unexpected ast node: '{node.GetType().Name}'!", node.Pos))
         };
     }
@@ -52,7 +55,7 @@ public class Interpreter
         foreach (ASTNode subNode in node.Body)
         {
             StValue value = result.Register(Visit(subNode));
-            if (result.HasError()) return result;
+            if (result.IsAbnormal()) return result;
 
             finalValue = value;
         }
@@ -75,7 +78,7 @@ public class Interpreter
         RTResult result = new();
 
         StValue rhs = result.Register(Visit(node.Rhs));
-        if (result.HasError()) return result;
+        if (result.IsAbnormal()) return result;
 
         Token op = node.OperToken;
 
@@ -122,10 +125,10 @@ public class Interpreter
         RTResult result = new();
 
         StValue rhs = result.Register(Visit(node.Rhs));
-        if (result.HasError()) return result;
+        if (result.IsAbnormal()) return result;
 
         StValue lhs = result.Register(Visit(node.Lhs));
-        if (result.HasError()) return result;
+        if (result.IsAbnormal()) return result;
 
         Token op = node.OperToken;
 
@@ -181,7 +184,7 @@ public class Interpreter
     {
         RTResult result = new();
         var value = result.Register(Visit(node.Value));
-        if (result.HasError()) return result;
+        if (result.IsAbnormal()) return result;
 
         Console.Write(value);
         if (node.Newline) Console.WriteLine();
@@ -215,12 +218,12 @@ public class Interpreter
         foreach (IfCase ifCase in node.Cases)
         {
             var output = result.Register(Visit(ifCase.Expr));
-            if (result.HasError()) return result;
+            if (result.IsAbnormal()) return result;
 
             if (!output.IsTrue()) continue;
 
             final = result.Register(Visit(ifCase.Body));
-            if (result.HasError()) return result;
+            if (result.IsAbnormal()) return result;
 
             succesfulCaseFound = true;
             break;
@@ -229,9 +232,43 @@ public class Interpreter
         if (!succesfulCaseFound && node.ElseCase is not null)
         {
             final = result.Register(Visit(node.ElseCase));
-            if (result.HasError()) return result;
+            if (result.IsAbnormal()) return result;
         }
 
         return result.Success(final);
+    }
+
+    public RTResult VisitWhileLoop(WhileLoopNode node)
+    {
+        RTResult result = new();
+
+        StValue evaluation = result.Register(Visit(node.Condition));
+        if (result.IsAbnormal()) return result;
+        if (!evaluation.IsTrue()) return result.Success(new StNull().Repos(node.Pos));
+
+        StValue final = new StNull().Repos(node.Pos);
+
+        while (evaluation.IsTrue())
+        {
+            final = result.Register(Visit(node.Body));
+            if (result.HasError() && result.Flow != RTFlow.Break && result.Flow != RTFlow.Continue) return result;
+            if (result.Flow == RTFlow.Break) break;
+
+            evaluation = result.Register(Visit(node.Condition));
+            if (result.HasError() && result.Flow != RTFlow.Break && result.Flow != RTFlow.Continue) return result;
+            if (result.Flow == RTFlow.Break) break;
+        }
+
+        return result.Success(final);
+    }
+
+    public RTResult VisitNext(NextNode node)
+    {
+        return new RTResult().Success(new StNull().Repos(node.Pos), RTFlow.Continue);
+    }
+
+    public RTResult VisitBreak(BreakNode node)
+    {
+        return new RTResult().Success(new StNull().Repos(node.Pos), RTFlow.Break);
     }
 }

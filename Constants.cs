@@ -9,5 +9,6 @@ class KeywordClass
         "hlt",
         "and", "or", "not",
         "if", "else", "elseif",
+        "while", "for", "break", "next"
     ];
 }

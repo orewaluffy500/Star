@@ -161,6 +161,22 @@ public class Parser(string fileName, Token[] tokens)
             );
         }
 
+        else if (token.Keyword("next"))
+        {
+            Next();
+            return result.Success(
+                new NextNode().Repos(token.Pos)
+            );
+        }
+
+        else if (token.Keyword("break"))
+        {
+            Next();
+            return result.Success(
+                new BreakNode().Repos(token.Pos)
+            );
+        }
+
         return LogicalExpr();
     }
 
@@ -219,13 +235,36 @@ public class Parser(string fileName, Token[] tokens)
             return result.Success(node!.Repos(token.Pos));
         }
 
-        else if (token.Keyword("if"))
+        return BinOp(KeywordExpr, [TokenType.Equals], Expr);
+    }
+
+    public ParseResult Controls()
+    {
+        ParseResult result = new();
+        Token token = Current;
+        
+        if (token.Keyword("if"))
         {
             return IfExpr();
         }
 
-        return BinOp(KeywordExpr, [TokenType.Equals], Expr);
+        else if (token.Keyword("while"))
+        {
+            Next();
+            var condition = result.Register(Expr());
+            if (result.HasError()) return result;
+
+            var body = result.Register(Expr());
+            if (result.HasError()) return result;
+
+            return result.Success(
+                new WhileLoopNode(condition!, body!).Repos(token.Pos)
+            );
+        }
+
+        return Expr();
     }
+
 
     public ParseResult Body() => PlainBody(TokenType.RBrace);
 
@@ -239,7 +278,7 @@ public class Parser(string fileName, Token[] tokens)
         {
             EatLines();
             if (Current.Type == end) break;
-            var node = result.Register(Expr());
+            var node = result.Register(Controls());
             if (result.HasError()) return result;
 
             body.Add(node!);

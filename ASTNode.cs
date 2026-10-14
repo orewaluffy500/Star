@@ -109,3 +109,31 @@ public class IfNode(IfCase[] cases, ASTNode? elseCase) : ASTNode
         return $"({string.Join(' ', Cases)} ELSE {ElseCase})";
     }
 }
+
+public class WhileLoopNode(ASTNode condition, ASTNode body) : ASTNode
+{
+    public ASTNode Condition = condition;
+    public ASTNode Body = body;
+
+    public override string ToString()
+    {
+        return $"(WHILE {Condition} DO {Body})";
+    }
+}
+
+public class NextNode : ASTNode
+{
+    public override string ToString()
+    {
+        return $"(NEXT)";
+    }
+}
+
+
+public class BreakNode : ASTNode
+{
+    public override string ToString()
+    {
+        return $"(BREAK)";
+    }
+}

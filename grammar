@@ -1,14 +1,18 @@
 body            : NEWLINE* expr NEWLINE+
 
+controls        : KW:if expr expr (KW:elseif expr expr)* (KW:else expr)?
+                : KW:while expr expr
+                : expr
 
 expr            : LBRACK body RBRACK
                 : keyword-expr (EQ expr)*
-                : KW:if expr expr (KW:elseif expr expr)* (KW:else expr)?
 
 keyword-expr    : KW:wrn expr
                 : KW:wr expr
                 : KW:rd
                 : KW:rdn
+                : KW:next
+                : KW:break
                 : logical-expr
 
 logical-expr    : comp-expr (KW:and|KW:or comp-expr)*
